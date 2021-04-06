@@ -1,0 +1,250 @@
+package org.intelligentindustry.opcuaproxy;
+
+import org.apache.camel.Endpoint;
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.gson.GsonDataFormat;
+import org.apache.camel.component.milo.server.MiloServerComponent;
+import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
+
+/**
+ * A Camel Java DSL Router
+ */
+public class ProxyRouteBuilder extends RouteBuilder {
+
+	GsonDataFormat gson() {
+		return new GsonDataFormat() {
+			{
+				setUnmarshalType(NodeDataValue.class);
+
+			}
+		};
+
+	};
+
+	public void configure() {
+		
+		
+
+		from("file:internal?fileName=nodes.txt").convertBodyTo(String.class).process(new Processor() {
+
+			@Override
+			public void process(Exchange exchange) throws Exception {
+				String file = exchange.getIn().getBody().toString(); // get file contents
+				final String[] nodes = file.split("\\r?\\n");
+
+				getContext().addRoutes(new RouteBuilder() {
+
+					@Override
+					public void configure() throws Exception {
+
+						this.bindToRegistry("opcua-server", new MiloServerComponent() {
+							{
+								setBindAddresses("0.0.0.0");
+								setEnableAnonymousAuthentication(true);
+								setPort(12685);
+								setApplicationName("opcua");
+
+							}
+						});
+						
+						
+						for (String node : nodes) {
+							
+							NodeId nodeId = NodeId.parse(node);
+
+							Endpoint mqttNodeStatus = endpoint(
+									"paho:IntelligentIndustryExperience/device-1/"+nodeId.toParseableString()+"/status?brokerUrl=tcp://test.mosquitto.org:1883?retained=true");
+							Endpoint mqttNodeCommand = endpoint(
+									"paho:IntelligentIndustryExperience/device-1/"+nodeId.toParseableString()+"/command?brokerUrl=tcp://test.mosquitto.org:1883?retained=true");
+			
+							
+							Endpoint opcuaNodeSubscriber = endpoint("milo-client:opc.tcp://192.168.1.201:4840?node=RAW(" + nodeId.toParseableString() + ")&samplingInterval=1000&allowedSecurityPolicies=None");
+							Endpoint opcuaNodeWriter = endpoint("milo-client:opc.tcp://192.168.1.201:4840?node=RAW(" + nodeId.toParseableString() + ")&allowedSecurityPolicies=None");
+
+							Endpoint opcuaNodeServer = endpoint("opcua-server:"+nodeId.getIdentifier());
+							
+							//Local OPCUA Cloud connect
+							
+							from(opcuaNodeSubscriber)
+								.marshal(gson())
+								.convertBodyTo(String.class)
+							.to(mqttNodeStatus);
+							
+							from(mqttNodeCommand).
+								convertBodyTo(String.class).
+								unmarshal(gson()).								
+							to( opcuaNodeWriter );
+														
+							//Remote OPCUA Proxy
+
+							from(mqttNodeStatus).
+								convertBodyTo(String.class).
+								unmarshal(gson()).
+							to(opcuaNodeServer);
+							
+							from(opcuaNodeServer).
+								marshal(gson()).								
+								convertBodyTo(String.class).
+							to(mqttNodeCommand);						
+							
+						}
+					}
+				});
+			}
+
+		}).to("seda:done");
+
+	}
+}
+	
+	
+
+/**
+ * 
+ * 	private Processor addNode(final NodeId node) {
+		return new Processor() {
+
+			@Override
+			public void process(Exchange exchange) throws Exception {
+
+				NodeDataValue nodeDataValue = new NodeDataValue(node.toParseableString());
+				Message m = exchange.getIn();
+				DataValue value = m.getBody(DataValue.class);
+				nodeDataValue.setDataValue(value);
+				m.setBody(nodeDataValue);
+
+			}
+		};
+	}
+ * 
+ * 
+ * from("file:inbox?fileName=nodes.txt").log("${body}").process(new Processor()
+ * {
+ * 
+ * 
+ * @Override public void process(final Exchange exchange) throws Exception {
+ * 
+ *           final String contents = exchange.getIn().getBody().toString();
+ *           final CamelContext context = exchange.getContext();
+ * 
+ * 
+ *           Thread restart = new Thread() {
+ * @Override public void run() {
+ * 
+ * 
+ *           System.out.println("starting the restart thread...");
+ * 
+ *           System.out.println("setting countdown latch for context stop");
+ * 
+ * 
+ * 
+ *           try {
+ * 
+ *           Thread.sleep(1000);
+ * 
+ * 
+ * 
+ *           final CountDownLatch contextStopCountDown = new CountDownLatch(1);
+ * 
+ *           context.addLifecycleStrategy(new LifecycleStrategySupport() {
+ *           public void onContextStop(CamelContext context) {
+ *           contextStopCountDown.countDown(); } });
+ * 
+ * 
+ *           context.stop(); contextStopCountDown.await();
+ * 
+ *           System.out.println("latch released, restarting");
+ * 
+ *           FileWriter myWriter = new FileWriter("internal/nodes.txt", false);
+ *           myWriter.write(contents); //myWriter.write("test");
+ *           myWriter.close();
+ * 
+ *           File origin = new File("inbox/nodes.txt");
+ * 
+ *           if( origin.exists()) { origin.delete(); System.out.println("deleted
+ *           origin file"); }
+ * 
+ *           context.start();
+ * 
+ *           } catch (Exception e) { e.printStackTrace(); } } };
+ *           restart.start();
+ * 
+ *           } }).log("going to stop...").to("seda:done");
+ *           
+ *           
+ *           
+ *       
+	public void configurem() {
+
+		this.bindToRegistry("opcua-server", new MiloServerComponent() {
+			{
+				setBindAddresses("0.0.0.0");
+				setEnableAnonymousAuthentication(true);
+				setPort(12685);
+				setApplicationName("opcua");
+
+			}
+		});
+
+		String[] nodes = new String[] { "ns=1;s=temperature", "ns=1;s=Control Relay number 0." };
+
+		NodeId[] nodeIds = new NodeId[] {
+				NodeId.parse("ns=1;s=temperature"),
+				NodeId.parse("ns=1;s=Control Relay number 0.")
+		};
+
+		Endpoint brokerStatus = endpoint(
+				"paho:IntelligentIndustryExperience/${header.nodeId}/temperature/status?brokerUrl=tcp://test.mosquitto.org:1883?retained=true");
+
+		for (String node : nodes) {
+
+			from("milo-client:opc.tcp://192.168.1.201:4840?node=RAW(" + node
+					+ ")&samplingInterval=1000&allowedSecurityPolicies=None").process(mqttClientPreProcessor())
+							.marshal(gson()).convertBodyTo(String.class).to(brokerStatus);
+		}
+
+		from(brokerStatus).convertBodyTo(String.class).log("${body}").unmarshal(gson())
+				.process(removeNode()).toD("opcua-server:${header.nodeId}");
+
+		EndpointConsumerBuilder c;
+	}
+
+	private Processor removeNode() {
+		return new Processor() {
+
+			@Override
+			public void process(Exchange exchange) throws Exception {
+
+				Message m = exchange.getIn();
+				NodeDataValue value = m.getBody(NodeDataValue.class);				
+				m.setBody(value.getDataValue());
+
+			}
+		};
+	}
+	
+
+	
+
+	private Processor mqttClientPreProcessor() {
+		return new Processor() {
+
+			@Override
+			public void process(Exchange exchange) throws Exception {
+
+				String uri = exchange.getFromEndpoint().getEndpointUri();
+				String nodeId = uri.split("[()]")[1];
+				NodeDataValue nodeDataValue = new NodeDataValue(nodeId);
+				Message m = exchange.getIn();
+				DataValue value = m.getBody(DataValue.class);
+				nodeDataValue.setDataValue(value);
+				m.setBody(nodeDataValue);
+				m.setHeader("nodeId", nodeId);
+			}
+		};
+	}
+
+}
+ */

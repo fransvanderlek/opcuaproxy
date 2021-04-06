@@ -1,0 +1,13 @@
+version: "3"
+services:
+  mqtt-broker:
+    image: intelligentindustry:opcuaproxy-0.1
+    volumes:
+      - "./internal:/internal"
+    networks:
+      - localnet
+    ports:
+      - "12685:12685"
+
+networks:
+  localnet:
