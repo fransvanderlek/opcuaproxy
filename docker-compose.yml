@@ -1,7 +1,7 @@
 version: "3"
 services:
   opcua-proxy:
-    image: intelligentindustry:opcuaproxy-0.1
+    image: opcuaproxy:latest
     volumes:
       - "./internal:/internal"
       - "./config:/config"
