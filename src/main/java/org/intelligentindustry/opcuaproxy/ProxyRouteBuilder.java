@@ -1,11 +1,15 @@
 package org.intelligentindustry.opcuaproxy;
 
+import java.text.MessageFormat;
+import java.util.Map;
+
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.gson.GsonDataFormat;
 import org.apache.camel.component.milo.server.MiloServerComponent;
+import org.apache.camel.spi.PropertiesComponent;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 
 /**
@@ -13,6 +17,9 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
  */
 public class ProxyRouteBuilder extends RouteBuilder {
 
+	public static String REMOTE_PROXY_PREFIX ="remote-proxy";
+	public static String CLOUD_CONNECT_PREFIX ="cloud-connect";
+	
 	GsonDataFormat gson() {
 		return new GsonDataFormat() {
 			{
@@ -25,6 +32,9 @@ public class ProxyRouteBuilder extends RouteBuilder {
 
 	public void configure() {
 		
+		PropertiesComponent pc = getContext().getPropertiesComponent();
+		pc.addLocation("file:/config/opcua-cloud-connect.properties");
+		pc.addLocation("file:/config/opcua-remote-proxy.properties");
 		
 
 		from("file:internal?fileName=nodes.txt").convertBodyTo(String.class).process(new Processor() {
@@ -39,12 +49,14 @@ public class ProxyRouteBuilder extends RouteBuilder {
 					@Override
 					public void configure() throws Exception {
 
+						Map<String,Object> properties = this.getContext().getPropertiesComponent().getLocalPropertiesAsMap();
+						
 						this.bindToRegistry("opcua-server", new MiloServerComponent() {
 							{
-								setBindAddresses("0.0.0.0");
+								setBindAddresses("{{opcua.remote.bindadr}}");
 								setEnableAnonymousAuthentication(true);
 								setPort(12685);
-								setApplicationName("opcua");
+								setApplicationName("{{opcua.remote.name}}");
 
 							}
 						});
@@ -53,17 +65,16 @@ public class ProxyRouteBuilder extends RouteBuilder {
 						for (String node : nodes) {
 							
 							NodeId nodeId = NodeId.parse(node);
-
-							Endpoint mqttNodeStatus = endpoint(
-									"paho:IntelligentIndustryExperience/device-1/"+nodeId.toParseableString()+"/status?brokerUrl=tcp://test.mosquitto.org:1883?retained=true");
-							Endpoint mqttNodeCommand = endpoint(
-									"paho:IntelligentIndustryExperience/device-1/"+nodeId.toParseableString()+"/command?brokerUrl=tcp://test.mosquitto.org:1883?retained=true");
-			
 							
-							Endpoint opcuaNodeSubscriber = endpoint("milo-client:opc.tcp://192.168.1.201:4840?node=RAW(" + nodeId.toParseableString() + ")&samplingInterval=1000&allowedSecurityPolicies=None");
-							Endpoint opcuaNodeWriter = endpoint("milo-client:opc.tcp://192.168.1.201:4840?node=RAW(" + nodeId.toParseableString() + ")&allowedSecurityPolicies=None");
-
-							Endpoint opcuaNodeServer = endpoint("opcua-server:"+nodeId.getIdentifier());
+							String statusTopic = MessageFormat.format(properties.get("broker.status-topic").toString(), nodeId.toParseableString() );
+							String commandTopic = MessageFormat.format(properties.get("broker.command-topic").toString(), nodeId.toParseableString() );
+							String brokerUrl = properties.get("broker.url").toString();							
+							Endpoint mqttNodeStatus = endpoint("paho:"+statusTopic+"?brokerUrl="+brokerUrl+"&retained=true");
+							Endpoint mqttNodeCommand = endpoint("paho:"+commandTopic+"?brokerUrl="+brokerUrl+"&retained=true");
+							
+							String opcuaOriginUrl = properties.get("opcua.origin.url").toString();							
+							Endpoint opcuaNodeSubscriber = endpoint("milo-client:"+opcuaOriginUrl+"?node=RAW(" + nodeId.toParseableString() + ")&samplingInterval=1000&allowedSecurityPolicies=None");
+							Endpoint opcuaNodeWriter = endpoint("milo-client:"+opcuaOriginUrl+"?node=RAW(" + nodeId.toParseableString() + ")&allowedSecurityPolicies=None");
 							
 							//Local OPCUA Cloud connect
 							
@@ -79,6 +90,8 @@ public class ProxyRouteBuilder extends RouteBuilder {
 														
 							//Remote OPCUA Proxy
 
+							Endpoint opcuaNodeServer = endpoint("opcua-server:"+nodeId.getIdentifier());
+							
 							from(mqttNodeStatus).
 								convertBodyTo(String.class).
 								unmarshal(gson()).

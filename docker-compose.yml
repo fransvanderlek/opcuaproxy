@@ -4,6 +4,7 @@ services:
     image: intelligentindustry:opcuaproxy-0.1
     volumes:
       - "./internal:/internal"
+      - "./config:/config"
     networks:
       - localnet
     ports:
