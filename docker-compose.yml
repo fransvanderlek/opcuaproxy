@@ -1,6 +1,6 @@
 version: "3"
 services:
-  mqtt-broker:
+  opcua-proxy:
     image: intelligentindustry:opcuaproxy-0.1
     volumes:
       - "./internal:/internal"
