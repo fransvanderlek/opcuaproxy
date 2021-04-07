@@ -16,9 +16,6 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
  * A Camel Java DSL Router
  */
 public class ProxyRouteBuilder extends RouteBuilder {
-
-	public static String REMOTE_PROXY_PREFIX ="remote-proxy";
-	public static String CLOUD_CONNECT_PREFIX ="cloud-connect";
 	
 	GsonDataFormat gson() {
 		return new GsonDataFormat() {
@@ -33,11 +30,9 @@ public class ProxyRouteBuilder extends RouteBuilder {
 	public void configure() {
 		
 		PropertiesComponent pc = getContext().getPropertiesComponent();
-		pc.addLocation("file:/config/opcua-cloud-connect.properties");
-		pc.addLocation("file:/config/opcua-remote-proxy.properties");
-		
-
-		from("file:internal?fileName=nodes.txt").convertBodyTo(String.class).process(new Processor() {
+		pc.addLocation("file:config/opcua-cloud-connect.properties,file:config/opcua-remote-proxy.properties");		
+				
+		from("file:internal?fileName=nodes.txt").log("${body}").convertBodyTo(String.class).process(new Processor() {
 
 			@Override
 			public void process(Exchange exchange) throws Exception {
@@ -49,14 +44,14 @@ public class ProxyRouteBuilder extends RouteBuilder {
 					@Override
 					public void configure() throws Exception {
 
-						Map<String,Object> properties = this.getContext().getPropertiesComponent().getLocalPropertiesAsMap();
+						Map<String,Object> properties = this.getContext().getPropertiesComponent().loadPropertiesAsMap();
 						
 						this.bindToRegistry("opcua-server", new MiloServerComponent() {
 							{
-								setBindAddresses("{{opcua.remote.bindadr}}");
+								setBindAddresses(properties.get("opcua.remote.bindadr").toString());
 								setEnableAnonymousAuthentication(true);
 								setPort(12685);
-								setApplicationName("{{opcua.remote.name}}");
+								setApplicationName(properties.get("opcua.remote.name").toString());
 
 							}
 						});
@@ -76,9 +71,13 @@ public class ProxyRouteBuilder extends RouteBuilder {
 							Endpoint opcuaNodeSubscriber = endpoint("milo-client:"+opcuaOriginUrl+"?node=RAW(" + nodeId.toParseableString() + ")&samplingInterval=1000&allowedSecurityPolicies=None");
 							Endpoint opcuaNodeWriter = endpoint("milo-client:"+opcuaOriginUrl+"?node=RAW(" + nodeId.toParseableString() + ")&allowedSecurityPolicies=None");
 							
+							System.out.println(opcuaNodeSubscriber.getEndpointUri());
+							System.out.println(mqttNodeCommand.getEndpointUri());
+							
 							//Local OPCUA Cloud connect
 							
 							from(opcuaNodeSubscriber)
+								.log("${body}")
 								.marshal(gson())
 								.convertBodyTo(String.class)
 							.to(mqttNodeStatus);

@@ -6,9 +6,9 @@ services:
       - "./internal:/internal"
       - "./config:/config"
     networks:
-      - localnet
+      - proxynet
     ports:
       - "12685:12685"
 
 networks:
-  localnet:
+  proxynet:

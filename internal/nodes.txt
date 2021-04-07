@@ -1,2 +1,1 @@
 ns=1;s=temperature
-ns=1;s=Control Relay number 0.
