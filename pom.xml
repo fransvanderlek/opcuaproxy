@@ -80,17 +80,6 @@
 
 	<build>
 		<defaultGoal>install</defaultGoal>
-		
-		 <resources>
-        <resource>
-            <filtering>true</filtering>
-            <includes>
-                <include>**/*.yml</include>
-            </includes>
-            <directory>.</directory>
-        </resource>
-    </resources>
-
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
