@@ -156,6 +156,7 @@
   <version>1.6.0</version>
   <executions>
 	  <!-- Remove existing image from local repo -->
+	  <!--
     <execution>
       <id>docker-clean</id>
       <phase>install</phase>
@@ -171,7 +172,7 @@
         </arguments>
       </configuration>
     </execution>
-		
+		-->
 	<!-- 
 	  Create new docker image using Dockerfile which must be present in current working directory.
 	  Tag the image using maven project version information.
