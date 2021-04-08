@@ -11,6 +11,7 @@ import org.apache.camel.component.gson.GsonDataFormat;
 import org.apache.camel.component.milo.server.MiloServerComponent;
 import org.apache.camel.spi.PropertiesComponent;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
+import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 
 /**
  * A Camel Java DSL Router
@@ -20,7 +21,7 @@ public class ProxyRouteBuilder extends RouteBuilder {
 	GsonDataFormat gson() {
 		return new GsonDataFormat() {
 			{
-				setUnmarshalType(NodeDataValue.class);
+				setUnmarshalType(DataValue.class);
 
 			}
 		};
