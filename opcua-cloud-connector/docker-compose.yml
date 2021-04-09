@@ -7,8 +7,6 @@ services:
       - "./config:/config"
     networks:
       - proxynet
-    ports:
-      - "12685:12685"
 
 networks:
   proxynet:
