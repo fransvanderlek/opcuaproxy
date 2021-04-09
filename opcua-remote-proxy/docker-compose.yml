@@ -1,0 +1,14 @@
+version: "3"
+services:
+  opcua-proxy:
+    image: org.intelligentindustry/opcuaproxy:0.0.1-SNAPSHOT
+    volumes:
+      - "./internal:/internal"
+      - "./config:/config"
+    networks:
+      - proxynet
+    ports:
+      - "12685:12685"
+
+networks:
+  proxynet:

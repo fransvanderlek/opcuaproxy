@@ -1,4 +1,4 @@
-package org.intelligentindustry.opcuaproxy;
+package org.intelligentindustry.opcua.cloudconnector;
 
 import org.apache.camel.main.Main;
 
@@ -12,7 +12,7 @@ public class MainApp {
      */
     public static void main(String... args) throws Exception {
         Main main = new Main();
-        main.configure().addRoutesBuilder(new ProxyRouteBuilder());
+        main.configure().addRoutesBuilder(new CloudConnectorRouteBuilder());
         main.run(args);
     }
 

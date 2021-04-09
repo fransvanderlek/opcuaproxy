@@ -1,4 +1,0 @@
-ns=2;s=Dynamic/RandomDouble
-ns=2;s=Dynamic/RandomFloat
-
-ns=1;s=Control Relay number 0.
