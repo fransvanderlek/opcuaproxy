@@ -23,5 +23,6 @@
 	<modules>
 		<module>opcua-cloud-connector</module>
 		<module>opcua-remote-proxy</module>
-	</modules>
+	</modules>	
+	
 </project>
