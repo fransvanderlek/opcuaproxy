@@ -108,7 +108,7 @@
 					<archive>
 						<manifest>
 							<!-- Specify the main class -->
-							<mainClass>org.intelligentindustry.remoteproxy.MainApp</mainClass>
+							<mainClass>org.intelligentindustry.opcua.remoteproxy.MainApp</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -133,7 +133,7 @@
 						<argument>-agentlib:native-image-agent=config-output-dir=./src/main/resources/META-INF/native-image/</argument>
 						<argument>-classpath</argument>
 						<classpath />
-						<argument>org.intelligentindustry.remoteproxy.MainApp</argument>
+						<argument>org.intelligentindustry.opcua.remoteproxy.MainApp</argument>
 					</arguments>
 				</configuration>
 			</plugin>
