@@ -10,7 +10,7 @@
 	<artifactId>opcua-remote-proxy</artifactId>
 	<name>a opcua server that proxies via the cloud</name>
 	<properties>
-		<graalvm.version>20.0.0</graalvm.version>
+		<graalvm.version>21.0.0.2</graalvm.version>
 	</properties>
 
 	<dependencyManagement>
