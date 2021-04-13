@@ -160,7 +160,7 @@
 						start a build server, which you then just need to shut down, in order to 
 						build the image -->
 					<buildArgs>
-						--no-fallback --no-server --static
+						--no-fallback --no-server --static --allow-incomplete-classpath
 					</buildArgs>
 				</configuration>
 			</plugin>
