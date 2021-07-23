@@ -9,4 +9,4 @@ To build this project use
 
 === How to run
 
-run the appropriate docker container
+run the appropriate docker compose file
