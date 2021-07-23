@@ -9,10 +9,4 @@ To build this project use
 
 === How to run
 
-You can run this example using
-
-    mvn camel:run
-
-=== More information
-
-You can find more information about Apache Camel at the website: http://camel.apache.org/
+run the appropriate docker container
